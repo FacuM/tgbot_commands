@@ -24,7 +24,7 @@ function sendMessage
 
 function printWFUM
 {
- printf "$DATESTR"'Waiting for updates...'
+ printf "$DATESTR"'Waiting for updates...\n'
 }
 
 function getSite
