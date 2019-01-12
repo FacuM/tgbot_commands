@@ -22,6 +22,11 @@ function sendMessage
  curl -s "https://api.telegram.org/bot""$API_KEY""/sendMessage" -d "{ \"chat_id\":\"$LCID\", \"text\":\"$1\", \"parse_mode\":\"markdown\"}" -H "Content-Type: application/json" 2>&1 > /dev/null
 }
 
+function printWFUM
+{
+ printf "$DATESTR"'Waiting for updates...'
+}
+
 function getSite
 {
  readarray links < $URLS_PATH
@@ -29,9 +34,10 @@ function getSite
  while [ "$STATUS" != 'Ok' ]
  do
   LINK=${links[ $(( $RANDOM % ${#links[@]} )) ]}
-  echo "$SPOKEN_NAME"' is checking the link he found...'
-  sendMessage "$SPOKEN_NAME"' is checking the link he found...'
-  CURL_TRY=$(curl -w '\n%{time_total}' $LINK -s)
+  MESSAGE="$SPOKEN_NAME"' is checking the link he found...'
+  echo "$MESSAGE"
+  sendMessage "$MESSAGE"
+  CURL_TRY=$(curl --connect-timeout 5 -w '\n%{time_total}' $LINK -s)
   CURL_STATUS=$?
   RESPONSE_TIME=$(echo "$CURL_TRY" | tail -1)
   if echo "$CURL_TRY" | grep 'renew' 2>&1 > /dev/null
@@ -40,17 +46,18 @@ function getSite
   fi
   if [ $CURL_STATUS -ne 0 ] || [ "$DOMAIN_REGISTRATION" == 'unregistered' ]
   then
-   echo "$SPOKEN_NAME"" found out it's down. No fun for ""$LINK"'. Will now try again...'
-   sendMessage "$SPOKEN_NAME"" found out it's down. No fun for ""$LINK"'. Will now try again...'
+   MESSAGE="$SPOKEN_NAME"" found out it's down.\n""$LINK"'\nWill now try again...'
+   printf "$MESSAGE\n"
+   sendMessage "$MESSAGE"
   else
    STATUS='Ok'
   fi
  done
- echo "$SPOKEN_NAME"' is happy, this one took just '"$RESPONSE_TIME"' seconds to reply.'"
+ MESSAGE="$SPOKEN_NAME"' is happy, this one took just '"$RESPONSE_TIME"' seconds to reply.'"
 $LINK"
- sendMessage "$SPOKEN_NAME"' is happy, this one took just '"$RESPONSE_TIME"' seconds to reply.'"
-$LINK"
- printf "$DATESTR"'Waiting for updates...'
+ echo "$MESSAGE"
+ sendMessage "$MESSAGE"
+ printWFUM
 }
 
 # Main
@@ -61,6 +68,12 @@ then
  exit 1
 else
  API_KEY=$(cat .api_key)
+fi
+if [ ! -f .desc ]
+then
+ HAS_DESCRIPTION='false'
+else
+ DESCRIPTION=$(cat .desc)
 fi
 LAST=""
 COUNT=0
@@ -81,9 +94,23 @@ do
 	'/getsite')
 	  getSite &
 	  ;;
+	'/about')
+	  if [ "$HAS_DESCRIPTION" != 'false' ]
+	  then
+	   MESSAGE="$SPOKEN_NAME"' '"$DESCRIPTION"
+	  else
+	   MESSAGE='No one set a description for '"$SPOKEN_NAME"', '"$SPOKEN_NAME"' is sad.'
+	  fi
+	  printf "$MESSAGE"
+	  sendMessage "$MESSAGE" &
+	  printWFUM
+	  ;;
 	*)
-	  sendMessage 'You reply to '"$SPOKEN_NAME"', you get more fun.' &
+	  MESSAGE='You reply to '"$SPOKEN_NAME"', you get more fun.'
+	  printf "$MESSAGE"
+	  sendMessage "$MESSAGE" &
 	  getSite &
+	  printWFUM
 	  ;;
   esac
  fi
