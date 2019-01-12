@@ -12,7 +12,6 @@
 ########################################
 
 # Configuration
-API_KEY=''
 URLS_PATH="$HOME"'/websites.final'
 SPOKEN_NAME='Johnny'
 
@@ -51,6 +50,13 @@ $LINK"
 
 # Main
 
+if [ ! -f .api_key ]
+then
+ echo '".api_key" file not found in current directory ('"$PWD"'), cannot continue.'
+ exit 1
+else
+ API_KEY=$(cat .api_key)
+fi
 LAST=""
 COUNT=0
 printf '\n'
